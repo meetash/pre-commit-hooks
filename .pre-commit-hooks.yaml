@@ -1,0 +1,20 @@
+- id: sync-sonar-test-exclusions
+  name: Sync sonar.test.exclusions from coverage omit
+  entry: hooks/sync_sonar_test_exclusions.sh
+  language: script
+  files: ^(pyproject\.toml|sonar-project\.properties)$
+  pass_filenames: false
+
+- id: format
+  name: Formatting
+  entry: lets fmt
+  language: system
+  types: [python]
+  pass_filenames: false
+
+- id: validate
+  name: Validation
+  entry: lets val
+  language: system
+  types: [python]
+  pass_filenames: false
