@@ -57,13 +57,13 @@ patterns_csv_from_pyproject() {
   printf '%s' "$csv"
 }
 
-sonar_test_exclusions_line() {
+sonar_coverage_exclusions_line() {
   local csv
   csv="$(patterns_csv_from_pyproject)"
   if [[ -z "$csv" ]]; then
-    printf '%s\n' "sonar.test.exclusions="
+    printf '%s\n' "sonar.coverage.exclusions="
   else
-    printf '%s\n' "sonar.test.exclusions=${csv}"
+    printf '%s\n' "sonar.coverage.exclusions=${csv}"
   fi
 }
 
@@ -71,7 +71,7 @@ apply_sonar_block() {
   local nl="$1"
   awk -v NL="$nl" '
     BEGIN { inserted = 0 }
-    /^sonar\.test\.exclusions/ { skip = 1; next }
+    /^sonar\.coverage\.exclusions/ { skip = 1; next }
     skip {
       if (/^  / || /^[[:space:]]*$/) next
       skip = 0
@@ -88,7 +88,7 @@ apply_sonar_block() {
 
 main() {
   local new_block
-  new_block="$(sonar_test_exclusions_line)"
+  new_block="$(sonar_coverage_exclusions_line)"
   SYNC_SONAR_TMP="$(mktemp)"
   trap cleanup_sync_sonar_tmp EXIT
   apply_sonar_block "$new_block" >"${SYNC_SONAR_TMP}"

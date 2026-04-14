@@ -1,6 +1,6 @@
-- id: sync-sonar-test-exclusions
-  name: Sync sonar.test.exclusions from coverage omit
-  entry: hooks/sync_sonar_test_exclusions.sh
+- id: sync-sonar-coverage-exclusions
+  name: Sync sonar.coverage.exclusions from coverage omit
+  entry: hooks/sync_sonar_coverage_exclusions.sh
   language: script
   files: ^(pyproject\.toml|sonar-project\.properties)$
   pass_filenames: false
