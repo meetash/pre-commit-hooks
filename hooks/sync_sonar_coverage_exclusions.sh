@@ -3,8 +3,7 @@
 # Supports both single-line and multi-line omit = [ ... ] arrays.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 PYPROJECT="${REPO_ROOT}/pyproject.toml"
 SONAR_PROPS="${REPO_ROOT}/sonar-project.properties"
 
