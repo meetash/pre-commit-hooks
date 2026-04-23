@@ -27,7 +27,7 @@ patterns_csv_from_pyproject() {
   local raw csv="" first=1 tok mapped
   local -a items
   raw="$(
-    cd "$REPO_ROOT" && python3 -c "import tomllib; print(','.join(tomllib.load(open('pyproject.toml', 'rb'))['tool']['coverage']['run']['omit']))"
+    cd "$REPO_ROOT" && python3 -c "import tomllib; print(','.join(tomllib.load(open('$PYPROJECT', 'rb'))['tool']['coverage']['run']['omit']))"
   )"
   raw="${raw%$'\n'}"
   [[ -n "$raw" ]] || return 0
