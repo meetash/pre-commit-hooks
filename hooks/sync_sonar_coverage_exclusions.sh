@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Expects [tool.coverage.run] omit = ["one-line", "toml", "array"] in pyproject.toml.
+# Syncs sonar.coverage.exclusions from [tool.coverage.run] omit in pyproject.toml.
+# Supports both single-line and multi-line omit = [ ... ] arrays.
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYPROJECT="${REPO_ROOT}/pyproject.toml"
 SONAR_PROPS="${REPO_ROOT}/sonar-project.properties"
 
@@ -22,28 +24,61 @@ map_sonar_pattern() {
   fi
 }
 
-coverage_omit_line() {
+# Prints one omit glob per line (unquoted path), or nothing if omit is missing / empty.
+omit_patterns_from_pyproject() {
   awk '
-    /^\[tool\.coverage\.run\]/ { inrun = 1; next }
-    /^\[/ { if (inrun) inrun = 0; next }
-    inrun && /^[[:space:]]*omit[[:space:]]*=/ { print; exit }
+    BEGIN { inrun = 0; inomit = 0; buf = "" }
+
+    /^\[/ {
+      if ($0 == "[tool.coverage.run]") {
+        inrun = 1
+        inomit = 0
+        buf = ""
+        next
+      }
+      if (inrun) {
+        inrun = 0
+        inomit = 0
+        buf = ""
+      }
+      next
+    }
+
+    !inrun { next }
+
+    /^[[:space:]]*omit[[:space:]]*=/ {
+      inomit = 1
+      sub(/^[[:space:]]*omit[[:space:]]*=[[:space:]]*/, "")
+      buf = $0
+      if (buf ~ /\]/) {
+        while (match(buf, /"[^"]*"/)) {
+          print substr(buf, RSTART + 1, RLENGTH - 2)
+          buf = substr(buf, RSTART + RLENGTH)
+        }
+        inomit = 0
+        buf = ""
+      }
+      next
+    }
+
+    inomit {
+      buf = buf "\n" $0
+      if (buf ~ /\]/) {
+        while (match(buf, /"[^"]*"/)) {
+          print substr(buf, RSTART + 1, RLENGTH - 2)
+          buf = substr(buf, RSTART + RLENGTH)
+        }
+        inomit = 0
+        buf = ""
+      }
+      next
+    }
   ' "$PYPROJECT"
 }
 
 patterns_csv_from_pyproject() {
-  local line inner
-  line="$(coverage_omit_line || true)"
-  [[ -n "$line" ]] || { echo ""; return; }
-  if [[ "$line" =~ ^[[:space:]]*omit[[:space:]]*=[[:space:]]*\[(.*)\][[:space:]]*$ ]]; then
-    inner="${BASH_REMATCH[1]}"
-  else
-    echo ""
-    return
-  fi
   local first=1 csv="" tok
-  while IFS= read -r tok; do
-    tok="${tok#\"}"
-    tok="${tok%\"}"
+  while IFS= read -r tok || [[ -n "$tok" ]]; do
     [[ -n "$tok" ]] || continue
     local mapped
     mapped="$(map_sonar_pattern "$tok")"
@@ -53,7 +88,7 @@ patterns_csv_from_pyproject() {
     else
       csv="${csv},${mapped}"
     fi
-  done < <(grep -oE '"[^"]*"' <<<"$inner" || true)
+  done < <(omit_patterns_from_pyproject)
   printf '%s' "$csv"
 }
 
