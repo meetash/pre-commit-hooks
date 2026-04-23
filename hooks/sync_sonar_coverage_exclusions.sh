@@ -4,7 +4,6 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PYPROJECT="${REPO_ROOT}/pyproject.toml"
 SONAR_PROPS="${REPO_ROOT}/sonar-project.properties"
 
 SYNC_SONAR_TMP=
@@ -27,7 +26,7 @@ patterns_csv_from_pyproject() {
   local raw csv="" first=1 tok mapped
   local -a items
   raw="$(
-    cd "$REPO_ROOT" && python3 -c "import tomllib; print(','.join(tomllib.load(open('$PYPROJECT', 'rb'))['tool']['coverage']['run']['omit']))"
+    cd "$REPO_ROOT" && python3 -c "import tomllib;d=tomllib.load(open('pyproject.toml','rb'));r=(((d.get('tool')or{}).get('coverage')or{}).get('run'))or{};o=r.get('omit');o=[]if o is None else(o if isinstance(o,list)else[o]);print(','.join(o))"
   )"
   raw="${raw%$'\n'}"
   [[ -n "$raw" ]] || return 0
