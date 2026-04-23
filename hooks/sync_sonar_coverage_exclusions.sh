@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Syncs sonar.coverage.exclusions from [tool.coverage.run] omit in pyproject.toml.
-# Supports both single-line and multi-line omit = [ ... ] arrays.
+# Syncs sonar.coverage.exclusions from [tool.coverage.run] omit in pyproject.toml
+# (omit list read via tomllib; Sonar glob mapping and sonar-project.properties merge stay in bash).
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PYPROJECT="${REPO_ROOT}/pyproject.toml"
 SONAR_PROPS="${REPO_ROOT}/sonar-project.properties"
 
 SYNC_SONAR_TMP=
@@ -23,63 +22,17 @@ map_sonar_pattern() {
   fi
 }
 
-# Prints one omit glob per line (unquoted path), or nothing if omit is missing / empty.
-omit_patterns_from_pyproject() {
-  awk '
-    BEGIN { inrun = 0; inomit = 0; buf = "" }
-
-    /^\[/ {
-      if ($0 == "[tool.coverage.run]") {
-        inrun = 1
-        inomit = 0
-        buf = ""
-        next
-      }
-      if (inrun) {
-        inrun = 0
-        inomit = 0
-        buf = ""
-      }
-      next
-    }
-
-    !inrun { next }
-
-    /^[[:space:]]*omit[[:space:]]*=/ {
-      inomit = 1
-      sub(/^[[:space:]]*omit[[:space:]]*=[[:space:]]*/, "")
-      buf = $0
-      if (buf ~ /\]/) {
-        while (match(buf, /"[^"]*"/)) {
-          print substr(buf, RSTART + 1, RLENGTH - 2)
-          buf = substr(buf, RSTART + RLENGTH)
-        }
-        inomit = 0
-        buf = ""
-      }
-      next
-    }
-
-    inomit {
-      buf = buf "\n" $0
-      if (buf ~ /\]/) {
-        while (match(buf, /"[^"]*"/)) {
-          print substr(buf, RSTART + 1, RLENGTH - 2)
-          buf = substr(buf, RSTART + RLENGTH)
-        }
-        inomit = 0
-        buf = ""
-      }
-      next
-    }
-  ' "$PYPROJECT"
-}
-
 patterns_csv_from_pyproject() {
-  local first=1 csv="" tok
-  while IFS= read -r tok || [[ -n "$tok" ]]; do
+  local raw csv="" first=1 tok mapped
+  local -a items
+  raw="$(
+    cd "$REPO_ROOT" && python3 -c "import tomllib;d=tomllib.load(open('pyproject.toml','rb'));r=(((d.get('tool')or{}).get('coverage')or{}).get('run'))or{};o=r.get('omit');o=[]if o is None else(o if isinstance(o,list)else[o]);print(','.join(o))"
+  )"
+  raw="${raw%$'\n'}"
+  [[ -n "$raw" ]] || return 0
+  IFS=',' read -ra items <<<"$raw" || true
+  for tok in "${items[@]}"; do
     [[ -n "$tok" ]] || continue
-    local mapped
     mapped="$(map_sonar_pattern "$tok")"
     if [[ "$first" -eq 1 ]]; then
       csv="$mapped"
@@ -87,7 +40,7 @@ patterns_csv_from_pyproject() {
     else
       csv="${csv},${mapped}"
     fi
-  done < <(omit_patterns_from_pyproject)
+  done
   printf '%s' "$csv"
 }
 
@@ -138,3 +91,4 @@ main() {
 }
 
 main "$@"
+
