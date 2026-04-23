@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # Syncs sonar.coverage.exclusions from [tool.coverage.run] omit in pyproject.toml
 # (omit list read via tomllib; Sonar glob mapping and sonar-project.properties merge stay in bash).
