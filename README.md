@@ -42,13 +42,18 @@ Runs `gitleaks git --pre-commit --staged . --redact --verbose` to detect secrets
 
 - Runs once per commit, not once per file
 - Uses `.gitleaks.toml` from the consuming repository when present
-- Requires the `gitleaks` binary to be installed locally
+- Installs the **latest** gitleaks release from GitHub into `.gitleaks-bin/` in the consuming repository (not the system `apt`/`brew` binary, which may be outdated)
+- Skips re-download when `.gitleaks-bin/gitleaks` is already the latest release
 
-Install `gitleaks` before enabling this hook:
+Add `.gitleaks-bin/` to the consuming repository's `.gitignore`.
 
-- macOS: `brew install gitleaks`
-- Ubuntu/Debian: `sudo apt install gitleaks`
-- Other Linux distributions: use your distro package manager if available, or download a release from [gitleaks releases](https://github.com/gitleaks/gitleaks/releases)
+Install manually (optional — the hook auto-installs on first run):
+
+```bash
+/path/to/pre-commit-hooks/scripts/install-gitleaks.sh
+```
+
+Run from the consuming repository root so gitleaks is installed to `.gitleaks-bin/` there.
 
 If a finding is a confirmed false positive, allow it in the consuming repository's `.gitleaks.toml` or with an inline `gitleaks:allow` comment.
 
