@@ -12,6 +12,8 @@ repos:
     rev: v2.0.0  # use the latest tag
     hooks:
       - id: sync-sonar-coverage-exclusions
+      - id: gitleaks
+      - id: check-charset
       - id: format
       - id: validate
 ```
@@ -33,6 +35,34 @@ Keeps `sonar.coverage.exclusions` in `sonar-project.properties` in sync with the
 - Do not edit `sonar.coverage.exclusions` manually — edit `pyproject.toml` instead
 
 Upgrading from v1.x: replace the hook id `sync-sonar-test-exclusions` with `sync-sonar-coverage-exclusions`, bump `rev:` to `v2.0.0`, and remove any stale `sonar.test.exclusions` line from `sonar-project.properties` if the old hook added one.
+
+### `gitleaks`
+
+Runs `gitleaks git --pre-commit --staged . --redact --verbose` to detect secrets in staged changes before they are committed.
+
+- Runs once per commit, not once per file
+- Uses `.gitleaks.toml` from the consuming repository when present
+- Installs the **latest** gitleaks release from GitHub into `.gitleaks-bin/` in the consuming repository (not the system `apt`/`brew` binary, which may be outdated)
+- Skips re-download when `.gitleaks-bin/gitleaks` is already the latest release
+
+Add `.gitleaks-bin/` to the consuming repository's `.gitignore`.
+
+Install manually (optional — the hook auto-installs on first run):
+
+```bash
+/path/to/pre-commit-hooks/scripts/install-gitleaks.sh
+```
+
+Run from the consuming repository root so gitleaks is installed to `.gitleaks-bin/` there.
+
+If a finding is a confirmed false positive, allow it in the consuming repository's `.gitleaks.toml` or with an inline `gitleaks:allow` comment.
+
+### `check-charset`
+
+Fails if staged text files contain Unicode characters that often break tooling or review, such as smart quotes, non-breaking spaces, zero-width characters, or bidi marks.
+
+- Runs only on staged text files
+- Replace reported characters with ASCII equivalents before committing
 
 ### `format`
 

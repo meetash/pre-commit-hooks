@@ -5,6 +5,18 @@
   files: ^(pyproject\.toml|sonar-project\.properties)$
   pass_filenames: false
 
+- id: gitleaks
+  name: Detect hardcoded secrets
+  entry: hooks/gitleaks.sh
+  language: script
+  pass_filenames: false
+
+- id: check-charset
+  name: Check for disallowed Unicode characters
+  entry: hooks/check_charset.sh
+  language: script
+  types: [text]
+
 - id: format
   name: Formatting
   entry: lets fmt
