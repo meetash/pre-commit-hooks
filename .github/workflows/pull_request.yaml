@@ -7,8 +7,13 @@ on:
 jobs:
   sonar_scan:
     name: CodeScan
-    uses: meetash/github-workflows/.github/workflows/sonarcloud.yaml@v8
-    with:
-      skip_coverage: true
-    secrets:
-      sonar_token: ${{ secrets.SONAR_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
